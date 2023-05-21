@@ -1,11 +1,5 @@
 ﻿using Domain.Common;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Domain.Parsers
 {
@@ -14,12 +8,13 @@ namespace Domain.Parsers
 
 		private readonly ILogger _logger;
 		private readonly FileConfiguration _configuration;
-		private readonly Dictionary<string, string>? _logicalColumnsDefinitions;
+		private readonly Dictionary<string, string> _logicalColumnsDefinitions;
 
 		public GenericFileParser(FileConfiguration config, ILogger logger)
 		{
 			_configuration = config;
 			_logger = logger;
+			_logicalColumnsDefinitions = new Dictionary<string, string>();
 		}
 
 		public GenericFileParser(FileConfiguration config, ILogger logger, Dictionary<string, string> logicalColumnsDefinitions) 
@@ -92,6 +87,13 @@ namespace Domain.Parsers
 		private ColumnParserMapping GetColumnParser(string columnName, Type propertyType)
 		{
 
+			if (propertyType == typeof(bool))
+			{
+				if (_logicalColumnsDefinitions.Keys.Contains(columnName))
+					return new ColumnParserMapping(columnName, new BoolColumnParser(_logicalColumnsDefinitions.GetValueOrDefault(columnName)));
+				else
+					return new ColumnParserMapping(columnName, new BoolColumnParser(_configuration.DefaultBooleanString));
+			}
 			if (propertyType == typeof(int))
 				return new ColumnParserMapping(columnName, new IntColumnParser());
 			if (propertyType == typeof(decimal))
@@ -99,9 +101,12 @@ namespace Domain.Parsers
 			if (propertyType == typeof(double))
 				return new ColumnParserMapping(columnName, new DoubleColumnParser());
 			if (propertyType == typeof(DateTime))
-				return new ColumnParserMapping(columnName, new DateTimeColumnParser("yyyy-MM-dd hh:mm:ss"));
-			if (propertyType == typeof(bool))
-				return new ColumnParserMapping(columnName, new BoolColumnParser("0"));
+				return new ColumnParserMapping(columnName, new DateTimeColumnParser(_configuration.DefaultDateTimeFormat));
+			if (propertyType == typeof(string))
+				return new ColumnParserMapping(columnName, new StringColumnParser());
+			if (propertyType == typeof(char))
+				return new ColumnParserMapping(columnName, new CharColumnParser());
+
 			return null;
 		}
 
